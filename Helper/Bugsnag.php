@@ -51,13 +51,13 @@ class Bugsnag extends AbstractHelper
         // Uncomment for composerless installation.
         // Make sure libraries are in place.
         //////////////////////////////////////////
-        /*if (!class_exists('\GuzzleHttp\Client')) {
+        if (!class_exists('\GuzzleHttp\Client')) {
             require_once $directoryList->getPath('lib_internal') . '/Bolt/guzzle/autoloader.php';
         }
 
         if (!class_exists('\Bugsnag\Client')) {
             require_once $directoryList->getPath('lib_internal') . '/Bolt/bugsnag/autoloader.php';
-	    }*/
+	    }
         //////////////////////////////////////////
 
         $this->configHelper = $configHelper;
