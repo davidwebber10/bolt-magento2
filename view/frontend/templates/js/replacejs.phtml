@@ -618,8 +618,13 @@ window.boltConfig = <?php echo $block->getSettings(); ?>;
     ///////////////////////////////////////////////////////////////
     var totals_change_selectors = [
         'tr.grand.totals td.amount span.price',
-        'tr.shipping.totals td.amount span.price',
-        '.minicart-wrapper .counter.qty span.counter-number'
+        'tr.shipping.totals td.amount span.price'
+        ///////////////////////////////////
+        /// Restaurant Supply customization
+        /// do not monitor minicart quantity
+        ///////////////////////////////////
+        //'.minicart-wrapper .counter.qty span.counter-number'
+        ///////////////////////////////////
     ];
     ///////////////////////////////////
     monitorDataChange(totals_change_selectors, createOrderDelayed, true, true);

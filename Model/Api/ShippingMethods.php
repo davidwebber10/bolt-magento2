@@ -321,7 +321,7 @@ class ShippingMethods implements ShippingMethodsInterface
      * @param array $shipping_address
      *
      * @return ShippingOptionsInterface
-     * @throws LocalizedException
+     * @throws \Exception
      */
     public function shippingEstimation($quote, $shipping_address)
     {
@@ -421,6 +421,7 @@ class ShippingMethods implements ShippingMethodsInterface
      * @param array $shipping_address
      *
      * @return ShippingOptionInterface[]
+     * @throws \Exception
      */
     private function getShippingOptions($quote, $shipping_address)
     {
@@ -449,8 +450,13 @@ class ShippingMethods implements ShippingMethodsInterface
             $shippingAddress->removeAllShippingRates();
             $shippingAddress->setCollectShippingRates(true);
         };
-        //$resetShippingCalculation();
         ////////////////////////////////////////////////////////////////
+
+        ///////////////////////////////////
+        /// Restaurant Supply customization
+        ///////////////////////////////////
+        $resetShippingCalculation();
+        ///////////////////////////////////
 
         foreach ($shippingRates as $carrierRates) {
             foreach ($carrierRates as $rate) {
@@ -466,11 +472,11 @@ class ShippingMethods implements ShippingMethodsInterface
             $service = $shippingMethod->getCarrierTitle() . ' - ' . $shippingMethod->getMethodTitle();
             $method  = $shippingMethod->getCarrierCode() . '_' . $shippingMethod->getMethodCode();
 
-            ////////////////////////////////////////////////////////////////
-            /// Use carefully only when necesarry.
-            ////////////////////////////////////////////////////////////////
-            // $resetShippingCalculation();
-            ////////////////////////////////////////////////////////////////
+            ///////////////////////////////////
+            /// Restaurant Supply customization
+            ///////////////////////////////////
+            $resetShippingCalculation();
+            ///////////////////////////////////
 
             $shippingAddress->setShippingMethod($method);
             $this->totalsCollector->collectAddressTotals($quote, $shippingAddress);
