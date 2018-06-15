@@ -617,12 +617,13 @@ window.boltConfig = <?php echo $block->getSettings(); ?>;
     // TODO: add this option to plugin configuration admin page
     ///////////////////////////////////////////////////////////////
     var totals_change_selectors = [
-        'tr.grand.totals td.amount span.price',
-        'tr.shipping.totals td.amount span.price'
+        'tr.grand.totals td.amount span.price'
         ///////////////////////////////////
         /// Restaurant Supply customization
         /// do not monitor minicart quantity
+        /// nor the shipping price
         ///////////////////////////////////
+        // 'tr.shipping.totals td.amount span.price',
         //'.minicart-wrapper .counter.qty span.counter-number'
         ///////////////////////////////////
     ];
