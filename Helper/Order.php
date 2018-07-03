@@ -502,11 +502,11 @@ class Order extends AbstractHelper
         // get order id and immutable quote id stored with transaction
         list($incrementId, $quoteId) = explode(' / ', $transaction->order->cart->display_id);
 
+        // load (immutable) quote from entity id
+        $quote = $this->cartHelper->getQuoteById($quoteId);
+
         // check if the order exists
         $order = $this->cartHelper->getOrderByIncrementId($incrementId);
-
-        // Load (immutable) quote from entity id
-        $quote = $this->cartHelper->getQuoteById($quoteId);
 
         // if not create the order
         if (!$order || !$order->getId()) {
@@ -732,7 +732,7 @@ class Order extends AbstractHelper
                     }
                     break;
                 case 'credited':
-                    $order_state = OrderModel::STATE_PROCESSING;
+                    $order_state = OrderModel::STATE_HOLDED;
                     $transaction_type = Transaction::TYPE_REFUND;
                     $transaction_id = $transaction->id.'-capture-refund';
                     $parent_transaction_id = $transaction->id.'-capture';
