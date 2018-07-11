@@ -427,9 +427,6 @@ class Order extends AbstractHelper
 
         $order = $this->quoteManagement->submit($quote);
 
-        // Delete redundant clones and parent quote
-        $this->deleteRedundantQuotes($quote);
-
         if ($frontend) {
             // Send order confirmation email to customer.
             $this->emailSender->send($order);
@@ -493,6 +490,29 @@ class Order extends AbstractHelper
     }
 
     /**
+     * Set parent quote as inactive.
+     *
+     * @param Quote $quote
+     */
+    public function deactivateParentQuote($quote) {
+        try {
+            $parentQuote = $this->cartHelper->getQuoteById($quote->getBoltParentQuoteId());
+            $parentQuote->setIsActive(false);
+            $this->cartHelper->saveQuote($parentQuote);
+        } catch (NoSuchEntityException $e) {
+            $this->bugsnag->registerCallback(function ($report) use ($quote) {
+                $report->setMetaData([
+                    'QUOTE' => [
+                        'quoteId' => $quote->getId(),
+                        'parentId' => $quote->getBoltParentQuoteId(),
+                        'orderId' => $quote->getReservedOrderId()
+                    ]
+                ]);
+            });
+        }
+    }
+
+    /**
      * Save/create the order (checkout, orphaned transaction),
      * Update order payment / transaction data (checkout, web hooks)
      *
@@ -553,6 +573,14 @@ class Order extends AbstractHelper
             }
 
             $order = $this->createOrder($quote, $transaction, $frontend, $bolt_trace_id);
+        }
+
+        if ($quote) {
+            // Set parent quote as inactive
+            $this->deactivateParentQuote($quote);
+
+            // Delete redundant clones and parent quote
+            $this->deleteRedundantQuotes($quote);
         }
 
         // update order payment transactions
