@@ -299,6 +299,7 @@ class Order extends AbstractHelper
             'postcode'     => @$address->postal_code,
             'telephone'    => @$address->phone_number,
             'region_id'    => $region ? $region->getId() : null,
+            'company'      => @$address->company,
         ];
 
         if ($this->cartHelper->validateEmail(@$address->email_address)) {
@@ -505,6 +506,7 @@ class Order extends AbstractHelper
                     'QUOTE' => [
                         'quoteId' => $quote->getId(),
                         'parentId' => $quote->getBoltParentQuoteId(),
+                        'orderId' => $quote->getReservedOrderId()
                     ]
                 ]);
             });

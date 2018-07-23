@@ -1,19 +1,19 @@
 <?php
 /**
-* Bolt magento2 plugin
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Open Software License (OSL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/osl-3.0.php
-*
-* @category   Bolt
-* @package    Bolt_Boltpay
-* @copyright  Copyright (c) 2018 Bolt Financial, Inc (https://www.bolt.com)
-* @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
-*/
+ * Bolt magento2 plugin
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ *
+ * @category   Bolt
+ * @package    Bolt_Boltpay
+ * @copyright  Copyright (c) 2018 Bolt Financial, Inc (https://www.bolt.com)
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
 
 namespace Bolt\Boltpay\Helper;
 
@@ -39,6 +39,7 @@ use Magento\Quote\Api\CartRepositoryInterface as QuoteRepository;
 use Magento\Sales\Api\OrderRepositoryInterface as OrderRepository;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Quote\Model\ResourceModel\Quote as QuoteResource;
+use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
  * Boltpay Cart helper
@@ -48,6 +49,9 @@ use Magento\Quote\Model\ResourceModel\Quote as QuoteResource;
  */
 class Cart extends AbstractHelper
 {
+    const ITEM_TYPE_PHYSICAL = 'physical';
+    const ITEM_TYPE_DIGITAL  = 'digital';
+
     /** @var CheckoutSession */
     private $checkoutSession;
 
@@ -214,10 +218,20 @@ class Cart extends AbstractHelper
      * Load Quote by id
      * @param $quoteId
      * @return \Magento\Quote\Api\Data\CartInterface
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @throws NoSuchEntityException
      */
     public function getQuoteById($quoteId) {
         return $this->quoteRepository->get($quoteId);
+    }
+
+    /**
+     * Load Quote by id if active
+     * @param $quoteId
+     * @return \Magento\Quote\Api\Data\CartInterface
+     * @throws NoSuchEntityException
+     */
+    public function getActiveQuoteById($quoteId) {
+        return $this->quoteRepository->getActive($quoteId);
     }
 
     /**
@@ -394,48 +408,60 @@ class Cart extends AbstractHelper
      * Get cart data.
      * The reference of total methods: dev/tests/api-functional/testsuite/Magento/Quote/Api/CartTotalRepositoryTest.php
      *
-     * @param bool $paymentOnly               flag that represents the type of checkout
-     * @param string $placeOrderPayload      additional data collected from the (one page checkout) page,
+     * @param bool $paymentOnly             flag that represents the type of checkout
+     * @param string $placeOrderPayload     additional data collected from the (one page checkout) page,
      *                                         i.e. billing address to be saved with the order
-     * @param Quote $quote
+     * @param Quote $immutableQuote
+     * @param bool $recreate                If set to `true` create a new clone. This is used when discount codes
+     *                                          are applied from the bolt checkout. Instead of updating the clone
+     *                                          create and return a new one, keeping the immutability prospect of clones
+     *                                          TODO: consider upadting existing clone instead of creating a new one
+     *                                                and change the name from $immutableQuote to something more
+     *                                                semantically correct
      *
      * @return array
      * @throws \Exception
      */
-    public function getCartData($paymentOnly, $placeOrderPayload, $quote = null)
+    public function getCartData($paymentOnly, $placeOrderPayload, $immutableQuote = null, $recreate = false)
     {
-        // If the quote is passed to the method it is already cloned and immmutable,
-        // and the purpose of the call is not creating the order on Bolt side but
-        // collectiong the data for bugsnag report
-        // set the $immutableQuote to prevent additional redundant cloning
-        $immutableQuote = $quote;
-
-        // If quote is not passed load it from the session.
-        // The quote is passed from an API call (i.e. discount code validation)
-        /** @var Quote $quote */
-        $quote = $quote ?: $this->checkoutSession->getQuote();
-
         $cart = [];
 
-        if (null === $quote->getId()) {
-            // The cart creation sometimes gets called from frontend event when no quote exists.
-            // It is store specific, for example a minicart with 0 items.
-            // Commenting this bugsnag notification out. It uselessly bloats the log.
-            // $this->bugsnag->notifyError('Get Cart Data Error', 'Non existing session quote object');
+        // If the immutable quote is passed (i.e. discount code validation, bugsnag report generation)
+        // load the parent quote, otherwise load the session quote
+        try {
+            /** @var Quote $quote */
+            $quote = $immutableQuote ?
+                $this->getActiveQuoteById($immutableQuote->getBoltParentQuoteId()) :
+                $this->checkoutSession->getQuote();
+        } catch (NoSuchEntityException $e) {
+            // getActiveQuoteById(): Order has already been processed and parent quote inactive / deleted.
+            $this->bugsnag->notifyException($e);
+            $quote = null;
+        }
+
+        // The cart creation sometimes gets called when no (parent) quote exists:
+        // 1. From frontend event handler: It is store specific, for example a minicart with 0 items.
+        // 2. From backend, with $immutableQuote passed as parameter, parent already inactive / deleted:
+        //    a) discount code validation
+        //    b) bugsnag report generation
+        // In case #1 the empty cart is returned
+        // In case #2 the cart generation continues for the cloned quote
+        if (!$immutableQuote && (!$quote || !$quote->getAllVisibleItems())) {
             return $cart;
         }
 
-        $quote->setBoltParentQuoteId($quote->getId());
-        $quote->reserveOrderId();
-        $this->quoteResource->save($quote);
-
         ////////////////////////////////////////////////////////
         // CLONE THE QUOTE and quote billing / shipping  address
-        // if quote is not passed to the method - the cart data
-        // is being created for sending to Bolt create order API
-        // otherwise skip this step
+        // if immutable quote is not passed to the method - the
+        // cart data is being created for sending to Bolt create
+        // order API, otherwise skip this step
         ////////////////////////////////////////////////////////
-        if (!$immutableQuote) {
+        if (!$immutableQuote || $recreate) {
+
+            $quote->setBoltParentQuoteId($quote->getId());
+            $quote->reserveOrderId();
+            $this->quoteResource->save($quote);
+
             $immutableQuote = $this->quoteFactory->create();
 
             $immutableQuote->merge($quote);
@@ -478,7 +504,7 @@ class Cart extends AbstractHelper
         // Set order_reference to parent quote id.
         // This is the constraint field on Bolt side and this way
         // duplicate payments / orders are prevented/
-        $cart['order_reference'] = $quote->getId();
+        $cart['order_reference'] = $immutableQuote->getBoltParentQuoteId();
 
         //Use display_id to hold and transmit, all the way back and forth, both reserved order id and immitable quote id
         $cart['display_id'] = $immutableQuote->getReservedOrderId() . ' / ' . $immutableQuote->getId();
@@ -493,7 +519,7 @@ class Cart extends AbstractHelper
         // The "appEmulation" and block creation code is necessary for geting correct image url from an API call.
         /////////////////////////////////////////////////////////////////////////////////////////////////////////
         $this->appEmulation->startEnvironmentEmulation(
-            $quote->getStoreId(),
+            $immutableQuote->getStoreId(),
             \Magento\Framework\App\Area::AREA_FRONTEND,
             true
         );
@@ -522,6 +548,7 @@ class Cart extends AbstractHelper
             $product['unit_price']   = $this->getRoundAmount($unitPrice);
             $product['quantity']     = round($item->getQty());
             $product['sku']          = trim($item->getSku());
+            $product['type']         = $item->getIsVirtual() ? self::ITEM_TYPE_DIGITAL : self::ITEM_TYPE_PHYSICAL;
 
             ////////////////////////////////////
             // Get product description and image
@@ -611,9 +638,12 @@ class Cart extends AbstractHelper
 
             } else {
 
-                // assign parent shipping method to clone
                 $address->setCollectShippingRates(true);
-                $address->setShippingMethod($quote->getShippingAddress()->getShippingMethod());
+
+                // assign parent shipping method to clone
+                if (!$address->getShippingMethod() && $quote) {
+                    $address->setShippingMethod($quote->getShippingAddress()->getShippingMethod());
+                }
 
                 $this->totalsCollector->collectAddressTotals($immutableQuote, $address);
                 $address->save();
@@ -847,7 +877,7 @@ class Cart extends AbstractHelper
             $this->bugsnag->notifyError('Cart Totals Mismatch', "Totals adjusted by $diff.");
         }
 
-        //$this->logHelper->addInfoLog(json_encode($cart, JSON_PRETTY_PRINT));
+        // $this->logHelper->addInfoLog(json_encode($cart, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
 
         return $cart;
     }
