@@ -49,7 +49,8 @@ use Magento\Checkout\Model\Session;
 use Magento\Framework\App\State;
 use Bolt\Boltpay\Helper\Log as LogHelper;
 use Bolt\Boltpay\Helper\Cart as CartHelper;
-use \Magento\Quote\Model\ResourceModel\Quote\CollectionFactory as QuoteCollectionFactory;
+use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
  * Class Order
@@ -149,14 +150,14 @@ class Order extends AbstractHelper
     private $cartHelper;
 
     /**
-     * @var QuoteCollectionFactory
-     */
-    private $quoteCollectionFactory;
-
-    /**
      * @var \Magento\Payment\Model\Info
      */
     private $quotePaymentInfoInstance = null;
+
+    /**
+     * @var ResourceConnection
+     */
+    private $resourceConnection;
 
     /**
      * @param Context $context
@@ -177,7 +178,7 @@ class Order extends AbstractHelper
      * @param LogHelper $logHelper
      * @param Bugsnag $bugsnag
      * @param CartHelper $cartHelper
-     * @param QuoteCollectionFactory $quoteCollectionFactory
+     * @param ResourceConnection $resourceConnection
      *
      * @codeCoverageIgnore
      */
@@ -200,27 +201,27 @@ class Order extends AbstractHelper
         LogHelper $logHelper,
         Bugsnag $bugsnag,
         CartHelper $cartHelper,
-        QuoteCollectionFactory $quoteCollectionFactory
+        ResourceConnection $resourceConnection
     ) {
         parent::__construct($context);
-        $this->apiHelper             = $apiHelper;
-        $this->configHelper          = $configHelper;
-        $this->converter             = $converter;
-        $this->regionModel           = $regionModel;
-        $this->quoteManagement       = $quoteManagement;
-        $this->emailSender           = $emailSender;
-        $this->invoiceService        = $invoiceService;
-        $this->dbTransaction         = $dbTransaction;
-        $this->invoiceSender         = $invoiceSender;
-        $this->transactionBuilder    = $transactionBuilder;
-        $this->timezone              = $timezone;
-        $this->dataObjectFactory     = $dataObjectFactory;
-        $this->checkoutSession       = $checkoutSession;
-        $this->appState              = $appState;
-        $this->logHelper             = $logHelper;
-        $this->bugsnag               = $bugsnag;
-        $this->cartHelper            = $cartHelper;
-        $this->quoteCollectionFactory = $quoteCollectionFactory;
+        $this->apiHelper = $apiHelper;
+        $this->configHelper = $configHelper;
+        $this->converter = $converter;
+        $this->regionModel = $regionModel;
+        $this->quoteManagement = $quoteManagement;
+        $this->emailSender = $emailSender;
+        $this->invoiceService = $invoiceService;
+        $this->dbTransaction = $dbTransaction;
+        $this->invoiceSender = $invoiceSender;
+        $this->transactionBuilder = $transactionBuilder;
+        $this->timezone = $timezone;
+        $this->dataObjectFactory = $dataObjectFactory;
+        $this->checkoutSession = $checkoutSession;
+        $this->appState = $appState;
+        $this->logHelper = $logHelper;
+        $this->bugsnag = $bugsnag;
+        $this->cartHelper = $cartHelper;
+        $this->resourceConnection = $resourceConnection;
     }
 
     /**
@@ -298,6 +299,7 @@ class Order extends AbstractHelper
             'postcode'     => @$address->postal_code,
             'telephone'    => @$address->phone_number,
             'region_id'    => $region ? $region->getId() : null,
+            'company'      => @$address->company,
         ];
 
         if ($this->cartHelper->validateEmail(@$address->email_address)) {
@@ -426,9 +428,6 @@ class Order extends AbstractHelper
 
         $order = $this->quoteManagement->submit($quote);
 
-        // Delete redundant clones and parent quote
-        $this->deleteRedundantQuotes($quote);
-
         if ($frontend) {
             // Send order confirmation email to customer.
             $this->emailSender->send($order);
@@ -476,11 +475,42 @@ class Order extends AbstractHelper
      * @param Quote $quote
      */
     private function deleteRedundantQuotes($quote) {
-        /** @var $quotes \Magento\Quote\Model\ResourceModel\Quote\Collection */
-        $quotes = $this->quoteCollectionFactory->create();
-        $quotes->addFieldToFilter('bolt_parent_quote_id', $quote->getBoltParentQuoteId());
-        $quotes->addFieldToFilter('entity_id', ['neq' => $quote->getId()]);
-        $quotes->walk('delete');
+
+        $connection = $this->resourceConnection->getConnection();
+
+        // get table name with prefix
+        $tableName = $this->resourceConnection->getTableName('quote');
+
+        $sql = "DELETE FROM {$tableName} WHERE bolt_parent_quote_id = :bolt_parent_quote_id AND entity_id != :entity_id";
+        $bind = [
+            'bolt_parent_quote_id' => $quote->getBoltParentQuoteId(),
+            'entity_id' => $quote->getId()
+        ];
+
+        $connection->query($sql, $bind);
+    }
+
+    /**
+     * Set parent quote as inactive.
+     *
+     * @param Quote $quote
+     */
+    public function deactivateParentQuote($quote) {
+        try {
+            $parentQuote = $this->cartHelper->getQuoteById($quote->getBoltParentQuoteId());
+            $parentQuote->setIsActive(false);
+            $this->cartHelper->saveQuote($parentQuote);
+        } catch (NoSuchEntityException $e) {
+            $this->bugsnag->registerCallback(function ($report) use ($quote) {
+                $report->setMetaData([
+                    'QUOTE' => [
+                        'quoteId' => $quote->getId(),
+                        'parentId' => $quote->getBoltParentQuoteId(),
+                        'orderId' => $quote->getReservedOrderId()
+                    ]
+                ]);
+            });
+        }
     }
 
     /**
@@ -513,8 +543,25 @@ class Order extends AbstractHelper
         if (!$quoteId) $quoteId = $transaction->order->cart->order_reference;
         ///////////////////////////////////////////////////////////////
 
-        // load (immutable) quote from entity id
-        $quote = $this->cartHelper->getQuoteById($quoteId);
+        ///////////////////////////////////////////////////////////////
+        // try loading (immutable) quote from entity id. if called from
+        // hook the quote might have been cleared, resulting in error.
+        // prevent failure and log event to bugsnag.
+        ///////////////////////////////////////////////////////////////
+        try {
+            $quote = $this->cartHelper->getQuoteById($quoteId);
+        } catch (NoSuchEntityException $e) {
+            $this->bugsnag->registerCallback(function ($report) use ($incrementId, $quoteId) {
+                $report->setMetaData([
+                    'ORDER' => [
+                        'incrementId' => $incrementId,
+                        'quoteId' => $quoteId,
+                    ]
+                ]);
+            });
+            $quote = null;
+        }
+        ///////////////////////////////////////////////////////////////
 
         // check if the order exists
         $order = $this->cartHelper->getOrderByIncrementId($incrementId);
@@ -527,6 +574,14 @@ class Order extends AbstractHelper
             }
 
             $order = $this->createOrder($quote, $transaction, $frontend, $bolt_trace_id);
+        }
+
+        if ($quote) {
+            // Set parent quote as inactive
+            $this->deactivateParentQuote($quote);
+
+            // Delete redundant clones and parent quote
+            $this->deleteRedundantQuotes($quote);
         }
 
         // update order payment transactions
@@ -589,7 +644,7 @@ class Order extends AbstractHelper
             try {
                 $quote = $this->cartHelper->getQuoteById($quoteId);
                 $cart = $this->cartHelper->getCartData(true, false, $quote);
-            } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+            } catch (NoSuchEntityException $e) {
                 // Old quote cleaned by cron
                 $cart = ['The quote does not exist.'];
             }
