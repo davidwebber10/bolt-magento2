@@ -37,6 +37,7 @@ use Magento\Payment\Model\Method\AbstractMethod;
 use Magento\Payment\Model\Method\Logger;
 use Magento\Sales\Model\Order\Payment\Transaction;
 use Bolt\Boltpay\Helper\Bugsnag;
+use Bolt\Boltpay\Helper\Cart as CartHelper;
 
 /**
  * Class Payment.
@@ -134,6 +135,12 @@ class Payment extends AbstractMethod
     private $dataObjectFactory;
 
     /**
+     * @var CartHelper
+     */
+    private $cartHelper;
+
+
+    /**
      * @param Context $context
      * @param Registry $registry
      * @param ExtensionAttributesFactory $extensionFactory
@@ -142,11 +149,12 @@ class Payment extends AbstractMethod
      * @param ScopeConfigInterface $scopeConfig
      * @param Logger $logger
      * @param TimezoneInterface $localeDate
-     * @param configHelper $configHelper
+     * @param ConfigHelper $configHelper
      * @param ApiHelper $apiHelper
      * @param OrderHelper $orderHelper
      * @param Bugsnag $bugsnag
      * @param DataObjectFactory $dataObjectFactory
+     * @param CartHelper $cartHelper
      * @param AbstractResource $resource
      * @param AbstractDb $resourceCollection
      * @param array $data
@@ -160,11 +168,12 @@ class Payment extends AbstractMethod
         ScopeConfigInterface $scopeConfig,
         Logger $logger,
         TimezoneInterface $localeDate,
-        configHelper $configHelper,
+        ConfigHelper $configHelper,
         ApiHelper $apiHelper,
         OrderHelper $orderHelper,
         Bugsnag $bugsnag,
         DataObjectFactory $dataObjectFactory,
+        CartHelper $cartHelper,
         AbstractResource $resource = null,
         AbstractDb $resourceCollection = null,
         array $data = []
@@ -187,6 +196,7 @@ class Payment extends AbstractMethod
         $this->orderHelper = $orderHelper;
         $this->bugsnag = $bugsnag;
         $this->dataObjectFactory = $dataObjectFactory;
+        $this->cartHelper = $cartHelper;
     }
 
     /**
@@ -455,5 +465,18 @@ class Payment extends AbstractMethod
     public function validate()
     {
         return $this;
+    }
+
+    /**
+     * Check whether payment method can be used
+     *
+     * @param \Magento\Quote\Api\Data\CartInterface|null $quote
+     * @return bool
+     * @deprecated 100.2.0
+     */
+    public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
+    {
+        if ($this->cartHelper->hasSubscription($quote)) return false;
+        return parent::isAvailable();
     }
 }

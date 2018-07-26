@@ -575,6 +575,8 @@ if (!$block->isEnabled()) return;
                 cart = data.cart;
                 createRequest = null;
 
+                toggleCheckout();
+
                 var prefill = isObject(data.hints.prefill) ? deepMergeObjects(hints.prefill, data.hints.prefill) : hints.prefill;
                 hints = deepMergeObjects(hints, data.hints);
                 hints.prefill = prefill;
@@ -584,7 +586,7 @@ if (!$block->isEnabled()) return;
                 if (window.BoltCheckout) BoltCheckout.configure(cart, hints, callbacks);
 
                 // prefetch Shipping and Tax for multi-step checkout
-                if (getCheckoutType() === 'checkout') prefetchShipping();
+                if (cart.orderToken && getCheckoutType() === 'checkout') prefetchShipping();
             };
             var onError = function(error) {
                 createRequest = null;
@@ -645,6 +647,11 @@ if (!$block->isEnabled()) return;
         });
         ////////////////////////////////////////////////
 
+        var toggleCheckout = function() {
+            $('.bolt-toggle-bolt').toggle(!!cart.orderToken);
+            $('.bolt-toggle-magento').toggle(!cart.orderToken);
+        }
+
         //////////////////////////////////////////////////////////
         // loop through selectors array and set up the replacement
         //////////////////////////////////////////////////////////
@@ -654,7 +661,7 @@ if (!$block->isEnabled()) return;
                 var parts = selector.split('|');
                 // the CSS selector
                 var identifier = parts[0].trim();
-                // button placement regarding the selector element, prepend, append
+                // button placement regarding the selector element: prepend, append, toggle
                 var position =  parts[1];
                 /////////////////////////////////////////////////////
                 // replace the selectors with bolt button identifiers
@@ -665,15 +672,23 @@ if (!$block->isEnabled()) return;
                     var bolt_button = document.createElement('div');
                     bolt_button.setAttribute('class', bolt_button_css_class);
                     // place the button before or after selector element
-                    if (position && position.trim().toLowerCase() === 'append') {
-                        element.parentNode.insertBefore(bolt_button, element.nextSibling);
+                    if (position) {
+                        var place = position.trim().toLowerCase();
+                        switch (place) {
+                            case 'append':
+                                element.parentNode.insertBefore(bolt_button, element.nextSibling);
+                                break;
+                            case 'toggle':
+                                bolt_button.classList.add('bolt-toggle-bolt');
+                                element.classList.add('bolt-toggle-magento');
+                            default:
+                                element.parentNode.insertBefore(bolt_button, element);
+                        }
                     } else {
-                        element.parentNode.insertBefore(bolt_button, element);
-                    }
-                    // if no position is specified remove the selector element
-                    if (!position) {
+                        // if no position is specified remove the selector element
                         element.parentNode.removeChild(element);
                     }
+                    toggleCheckout();
                 });
                 /////////////////////////////////////////////////////
             }(selector);

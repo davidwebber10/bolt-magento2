@@ -88,27 +88,34 @@ class Data extends Action
     public function execute()
     {
         try {
-            // flag to determinate the type of checkout / data sent to Bolt
-            $payment_only        = $this->getRequest()->getParam('payment_only');
-            // additional data collected from the (one page checkout) page,
-            // i.e. billing address to be saved with the order
-            $place_order_payload = $this->getRequest()->getParam('place_order_payload');
-            // call the Bolt API
-            $boltpayOrder = $this->cartHelper->getBoltpayOrder($payment_only, $place_order_payload);
 
-            // format and send the response
-            $response = $boltpayOrder ? $boltpayOrder->getResponse() : null;
+            if ($this->cartHelper->hasSubscription()) {
+                $cart  = [];
+                $hints = [];
+            } else {
 
-            // get immutable quote id stored with cart data
-            list(, $cartReference) = $response ? explode(' / ', $response->cart->display_id) : [null, ''];
+                // flag to determinate the type of checkout / data sent to Bolt
+                $payment_only        = $this->getRequest()->getParam('payment_only');
+                // additional data collected from the (one page checkout) page,
+                // i.e. billing address to be saved with the order
+                $place_order_payload = $this->getRequest()->getParam('place_order_payload');
+                // call the Bolt API
+                $boltpayOrder = $this->cartHelper->getBoltpayOrder($payment_only, $place_order_payload);
 
-            $cart = [
-                'orderToken'  => $response ? $response->token : '',
-                'authcapture' => $this->configHelper->getAutomaticCaptureMode(),
-                'cartReference' => $cartReference,
-            ];
+                // format and send the response
+                $response = $boltpayOrder ? $boltpayOrder->getResponse() : null;
 
-            $hints = $this->cartHelper->getHints($place_order_payload, $cartReference);
+                // get immutable quote id stored with cart data
+                list(, $cartReference) = $response ? explode(' / ', $response->cart->display_id) : [null, ''];
+
+                $cart = [
+                    'orderToken'  => $response ? $response->token : '',
+                    'authcapture' => $this->configHelper->getAutomaticCaptureMode(),
+                    'cartReference' => $cartReference,
+                ];
+
+                $hints = $this->cartHelper->getHints($place_order_payload, $cartReference);
+            }
 
             $result = $this->resultJsonFactory->create();
 

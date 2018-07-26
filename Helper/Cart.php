@@ -872,7 +872,7 @@ class Cart extends AbstractHelper
             $this->bugsnag->notifyError('Cart Totals Mismatch', "Totals adjusted by $diff.");
         }
 
-        // $this->logHelper->addInfoLog(json_encode($cart, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+        $this->logHelper->addInfoLog(json_encode($cart, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
 
         return $cart;
     }
@@ -929,5 +929,23 @@ class Cart extends AbstractHelper
             $address['region'] = 'Puerto Rico';
         }
         return is_object($addressData) ? (object)$address : $address;
+    }
+
+    public function hasProductRestrictions() {
+
+    }
+
+    /**
+     * @param Quote|null $quote
+     * @return bool
+     */
+    public function hasSubscription($quote = null) {
+        /** @var Quote $quote */
+        $quote = $quote ?: $this->checkoutSession->getQuote();
+        foreach ($quote->getAllVisibleItems() as $item) {
+            $product = $item->getProduct();
+            if ($product->getSubscriptionActive()) return true;
+        }
+        return false;
     }
 }
