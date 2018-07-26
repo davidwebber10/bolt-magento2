@@ -175,6 +175,10 @@ class Config extends AbstractHelper
      */
     const XML_PATH_GEOLOCATION_API_KEY = 'payment/boltpay/geolocation_api_key';
 
+    /**
+     * Path for Product Restriction Methods
+     */
+    const XML_PATH_PRODUCT_RESTRICTION_METHODS = 'payment/boltpay/product_restriction_methods';
 
     /**
      * @var ResourceInterface
@@ -530,5 +534,18 @@ class Config extends AbstractHelper
     public function getGeolocationApiKey()
     {
         return $this->getEncryptedKey(self::XML_PATH_GEOLOCATION_API_KEY);
+    }
+
+    /**
+     * Get Custom Prefetch Address Fields
+     *
+     * @return  string
+     */
+    public function getProductRestrictionMethods()
+    {
+        return $this->getScopeConfig()->getValue(
+            self::XML_PATH_PRODUCT_RESTRICTION_METHODS,
+            ScopeInterface::SCOPE_STORE
+        );
     }
 }

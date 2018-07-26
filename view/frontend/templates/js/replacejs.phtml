@@ -686,6 +686,7 @@ if (!$block->isEnabled()) return;
                         }
                     } else {
                         // if no position is specified remove the selector element
+                        element.parentNode.insertBefore(bolt_button, element);
                         element.parentNode.removeChild(element);
                     }
                     toggleCheckout();

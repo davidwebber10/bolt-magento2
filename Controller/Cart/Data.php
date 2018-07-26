@@ -89,7 +89,7 @@ class Data extends Action
     {
         try {
 
-            if ($this->cartHelper->hasSubscription()) {
+            if ($this->cartHelper->hasProductRestrictions()) {
                 $cart  = [];
                 $hints = [];
             } else {

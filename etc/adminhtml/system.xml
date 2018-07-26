@@ -87,7 +87,11 @@
                     <label>Javascript: success</label>
                     <comment>This function is called when the Bolt checkout transaction is successful.</comment>
                 </field>
-                <field id="debug" translate="label" type="select" sortOrder="125" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
+                <field id="product_restriction_methods" translate="label" type="textarea" sortOrder="125" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Product Restriction Methods</label>
+                    <comment>Comma separated list of methods called on Product model for every item in the cart. Returning true from at least one call disables the Bolt checkout.</comment>
+                </field>
+                <field id="debug" translate="label" type="select" sortOrder="130" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
                     <label>Debug</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>

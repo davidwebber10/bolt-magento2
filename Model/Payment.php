@@ -476,7 +476,7 @@ class Payment extends AbstractMethod
      */
     public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
     {
-        if ($this->cartHelper->hasSubscription($quote)) return false;
+        if ($this->cartHelper->hasProductRestrictions($quote)) return false;
         return parent::isAvailable();
     }
 }

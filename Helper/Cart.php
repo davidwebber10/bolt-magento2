@@ -931,21 +931,29 @@ class Cart extends AbstractHelper
         return is_object($addressData) ? (object)$address : $address;
     }
 
-    public function hasProductRestrictions() {
-
-    }
-
     /**
      * @param Quote|null $quote
      * @return bool
      */
-    public function hasSubscription($quote = null) {
+    public function hasProductRestrictions($quote = null) {
+        // get configured Product model getters that can restrict Bolt checkout usage
+        $productRestrictionMethods = explode(',', $this->configHelper->getProductRestrictionMethods());
+        // trim values and filter out empty strings
+        $productRestrictionMethods = array_filter(array_map('trim', $productRestrictionMethods));
+
+        if (!$productRestrictionMethods) return false;
+
         /** @var Quote $quote */
         $quote = $quote ?: $this->checkoutSession->getQuote();
         foreach ($quote->getAllVisibleItems() as $item) {
+            // get item product
             $product = $item->getProduct();
-            if ($product->getSubscriptionActive()) return true;
+            // call every, if any, method on product, if found return true, do restrict
+            foreach ($productRestrictionMethods as $method) {
+                if ($product->$method()) return true;
+            }
         }
+
         return false;
     }
 }
