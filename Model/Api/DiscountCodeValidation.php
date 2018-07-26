@@ -259,6 +259,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
                 /** @var Quote $parentQuote */
                 $parentQuote = $this->cartHelper->getActiveQuoteById($parentQuoteId);
             } catch (\Exception $e) {
+                $this->bugsnag->notifyException($e);
                 return $this->sendErrorResponse(
                     self::ERR_INSUFFICIENT_INFORMATION,
                     sprintf('The cart reference [%s] is not found.', $parentQuoteId),
@@ -271,6 +272,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
                 /** @var Quote $immutableQuote */
                 $immutableQuote = $this->cartHelper->getQuoteById($immutableQuoteId);
             } catch (\Exception $e) {
+                $this->bugsnag->notifyException($e);
                 return $this->sendErrorResponse(
                     self::ERR_INSUFFICIENT_INFORMATION,
                     sprintf('The cart reference [%s] is not found.', $immutableQuoteId),
@@ -362,6 +364,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
                 // apply coupon to clone
                 $this->setCouponCode($immutableQuote, $couponCode);
             } catch (\Exception $e) {
+                $this->bugsnag->notifyException($e);
                 $this->sendErrorResponse(
                     self::ERR_SERVICE,
                     $e->getMessage(),
@@ -434,6 +437,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
      * @param int $httpStatusCode
      */
     private function sendErrorResponse($errCode, $message, $httpStatusCode, $quote = null) {
+        $this->bugsnag->notifyError('Discount Validation Error', $message);
         $errResponse = [
             'status' => 'error',
             'error' => [
