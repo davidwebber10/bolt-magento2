@@ -183,12 +183,15 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
                 'X-Bolt-Plugin-Version' => $this->configHelper->getModuleVersion()
             ]);
 
+            //$this->logHelper->addInfoLog($this->request->getContent());
+
             $this->hookHelper->verifyWebhook();
 
             $request = json_decode($this->request->getContent());
 
             // get the coupon code
-            $couponCode = trim($request->cart->discount_code);
+            $discount_code = @$request->discount_code ?: @$request->cart->discount_code;
+            $couponCode = trim($discount_code);
 
             // check if empty coupon was sent
             if ($couponCode === '') {
