@@ -575,7 +575,7 @@ if (!$block->isEnabled()) return;
                 cart = data.cart;
                 createRequest = null;
 
-                toggleCheckout();
+                toggleCheckout(cart.orderToken);
 
                 var prefill = isObject(data.hints.prefill) ? deepMergeObjects(hints.prefill, data.hints.prefill) : hints.prefill;
                 hints = deepMergeObjects(hints, data.hints);
@@ -647,10 +647,16 @@ if (!$block->isEnabled()) return;
         });
         ////////////////////////////////////////////////
 
-        var toggleCheckout = function() {
-            $('.bolt-toggle-bolt').toggle(!!cart.orderToken);
-            $('.bolt-toggle-magento').toggle(!cart.orderToken);
-        }
+
+        ////////////////////////////////////////////////////////
+        // Togle between Bolt button and magento checkout button
+        // if toggling is enabled.
+        ////////////////////////////////////////////////////////
+        var toggleCheckout = function(condition) {
+            $('.bolt-toggle-bolt').toggle(!!condition);
+            $('.bolt-toggle-magento').toggle(!condition);
+        };
+        ////////////////////////////////////////////////////////
 
         //////////////////////////////////////////////////////////
         // loop through selectors array and set up the replacement
@@ -678,18 +684,21 @@ if (!$block->isEnabled()) return;
                             case 'append':
                                 element.parentNode.insertBefore(bolt_button, element.nextSibling);
                                 break;
+                            case 'prepend':
+                                element.parentNode.insertBefore(bolt_button, element);
+                                break;
                             case 'toggle':
                                 bolt_button.classList.add('bolt-toggle-bolt');
                                 element.classList.add('bolt-toggle-magento');
-                            default:
                                 element.parentNode.insertBefore(bolt_button, element);
+                                break;
                         }
                     } else {
                         // if no position is specified remove the selector element
                         element.parentNode.insertBefore(bolt_button, element);
                         element.parentNode.removeChild(element);
                     }
-                    toggleCheckout();
+                    toggleCheckout(cart.orderToken);
                 });
                 /////////////////////////////////////////////////////
             }(selector);

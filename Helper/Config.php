@@ -537,7 +537,7 @@ class Config extends AbstractHelper
     }
 
     /**
-     * Get Custom Prefetch Address Fields
+     * Get Product Restriction Methods
      *
      * @return  string
      */

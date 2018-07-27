@@ -89,6 +89,8 @@ class Data extends Action
     {
         try {
 
+            // If there are products in cart with restrictions on Bolt checkout,
+            // e.g. subscription product, return empty cart
             if ($this->cartHelper->hasProductRestrictions()) {
                 $cart  = [];
                 $hints = [];
