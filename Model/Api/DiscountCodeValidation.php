@@ -187,8 +187,8 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
 
             // Bugsnag the request for debugging purpose
             $this->bugsnag->notifyError('Discount Validation Request', $this->request->getContent());
-            
-            $this->hookHelper->verifyWebhook();
+
+            //$this->hookHelper->verifyWebhook();
 
             $request = json_decode($this->request->getContent());
 
