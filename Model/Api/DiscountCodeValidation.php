@@ -185,6 +185,9 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
 
             //$this->logHelper->addInfoLog($this->request->getContent());
 
+            // Bugsnag the request for debugging purpose
+            $this->bugsnag->notifyError('Discount Validation Request', $this->request->getContent());
+            
             $this->hookHelper->verifyWebhook();
 
             $request = json_decode($this->request->getContent());
@@ -440,7 +443,6 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
      * @param int $httpStatusCode
      */
     private function sendErrorResponse($errCode, $message, $httpStatusCode, $quote = null) {
-        $this->bugsnag->notifyError('Discount Validation Error', $message);
         $errResponse = [
             'status' => 'error',
             'error' => [
@@ -450,6 +452,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
         ];
         if ($quote) $errResponse['cart'] = $this->getCartTotals($quote);
         $this->response->setHttpResponseCode($httpStatusCode);
+        $this->bugsnag->notifyError('Discount Validation Response', json_encode($errResponse));
         $this->response->setBody(json_encode($errResponse));
         $this->response->sendResponse();
         return;
@@ -462,6 +465,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
      */
     private function sendSuccessResponse($result, $quote) {
         $result['cart'] = $this->getCartTotals($quote);
+        $this->bugsnag->notifyError('Discount Validation Response', json_encode($result));
         $this->response->setBody(json_encode($result));
         $this->response->sendResponse();
         return;
