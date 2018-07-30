@@ -950,7 +950,7 @@ class Cart extends AbstractHelper
         $quote = $quote ?: $this->checkoutSession->getQuote();
         foreach ($quote->getAllVisibleItems() as $item) {
             // get item product
-            $product = $item->getProduct();
+            $product = $this->productFactory->create()->load($item->getProductId());
             // call every, if any, method on product, if found return true, do restrict
             foreach ($productRestrictionMethods as $method) {
                 if ($product->$method()) return true;
