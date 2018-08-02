@@ -237,13 +237,22 @@ class Cart extends AbstractHelper
     /**
      * Load Order by increment id
      * @param $incrementId
-     * @return \Magento\Sales\Api\Data\OrderInterface|mixed
+     *
+     * @return \Magento\Sales\Api\Data\OrderInterface|false
      */
     public function getOrderByIncrementId($incrementId)
     {
+        /*
+         * It depends from a logic in plugin src/Demac/OrderNumberPrefix/Plugin/OrderPrefix.php
+         * This logic was added 2017-07-24 and updated with prefix 'TAOS-' in 2017-11-15
+         */
+        $orderPrefix = 'TAOS-';
+
         $searchCriteria = $this->searchCriteriaBuilder
-            ->addFilter('increment_id', $incrementId, 'eq')->create();
+            ->addFilter('increment_id', $orderPrefix . $incrementId, 'eq')->create();
+
         $collection = $this->orderRepository->getList($searchCriteria)->getItems();
+
         return reset($collection);
     }
 
