@@ -577,6 +577,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
             case "by_shipping":
                 return "shipping";
         }
+
         return "";
     }
 
