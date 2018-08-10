@@ -222,6 +222,10 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
                 $giftCard = $this->loadGiftCardData($couponCode);
             }
 
+            $this->logHelper->addInfoLog(__METHOD__);
+            $this->logHelper->addInfoLog('Coupon is empty: '. (empty($coupon) || $coupon->isObjectNew()) ? 'yes - Coupon' : 'no - Coupon');
+            $this->logHelper->addInfoLog('GiftCArd is empty: '. ((empty($giftCard)) ? 'yes - Giftcard' : 'no - Giftcard'));
+            $this->logHelper->addInfoLog((bool)((empty($coupon) || $coupon->isObjectNew()) && empty($giftCard)));
             // check if the coupon exists
             if ((empty($coupon) || $coupon->isObjectNew()) && empty($giftCard)) {
                 return $this->sendErrorResponse(
@@ -307,6 +311,9 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
             if (isset($result['status']) && $result['status'] === 'error') {
                 return $result;
             }
+
+            $this->logHelper->addInfoLog(json_encode($result));
+            $this->logHelper->addInfoLog('=== END ===');
 
             return $this->sendSuccessResponse($result, $immutableQuote);
 
@@ -580,6 +587,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
             case "by_shipping":
                 return "shipping";
         }
+
         return "";
     }
 
@@ -621,6 +629,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
 
             $result = ($giftCard->isValid()) ? $giftCard : null;
         }
+        $this->logHelper->addInfoLog('# loadGiftCardData Result is empty: '. (empty($result) ? "yes" : 'no'));
 
         return $result;
     }
