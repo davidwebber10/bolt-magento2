@@ -293,6 +293,9 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
                 );
             }
 
+            $this->logHelper->addInfoLog('# Coupon: '.($coupon && $coupon->getCouponId() ? 'yes' : 'no'));
+            $this->logHelper->addInfoLog('# GiftCard: '.($giftCard && $giftCard->getId() ? 'yes' : 'no'));
+
             if ($coupon && $coupon->getCouponId()) {
                 $result = $this->applyingCouponCode($couponCode, $coupon, $immutableQuote, $parentQuote);
             } else if ($giftCard && $giftCard->getId()) {
