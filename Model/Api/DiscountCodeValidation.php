@@ -622,7 +622,8 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
     {
         $result = null;
 
-        $giftCardAccount = $this->moduleGiftCardAccount->getInstance();
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $giftCardAccount = $objectManager->get('Magento\GiftCardAccount\Model\Giftcardaccount');
         if ($giftCardAccount) {
             /** @var Magento\GiftCardAccount\Model\Giftcardaccount $giftCardAccount */
             $giftCard = $giftCardAccount->loadByCode($code);
