@@ -354,6 +354,7 @@ if (!$block->isEnabled()) return;
             var publishableKey = getCheckoutKey();
             if (scriptTag) {
                 scriptTag.setAttribute('data-publishable-key', publishableKey);
+                console.log('insertConnectScript createOrder 1');
                 createOrder();
                 return;
             }
@@ -363,6 +364,7 @@ if (!$block->isEnabled()) return;
             scriptTag.setAttribute('src', settings.connect_url);
             scriptTag.setAttribute('id', 'bolt-connect');
             scriptTag.setAttribute('data-publishable-key', publishableKey);
+            console.log('insertConnectScript createOrder 2');
             scriptTag.onload = createOrder;
             document.head.appendChild(scriptTag);
         };
@@ -374,6 +376,7 @@ if (!$block->isEnabled()) return;
         var processButtons = function () {
             if (getCheckoutKey() !== '') {
                 setCheckoutTypeStyle();
+                console.log('processButtons insertConnectScript');
                 insertConnectScript();
             }
         };
@@ -611,6 +614,7 @@ if (!$block->isEnabled()) return;
 
             if (address !== billing_address_value) {
                 billing_address_value = address;
+                console.log('billing_address_selector createOrder');
                 createOrder();
             }
 
@@ -631,6 +635,7 @@ if (!$block->isEnabled()) return;
 
             if (email !== customer_email_value) {
                 customer_email_value = email;
+                console.log('customer_email_selector createOrder');
                 createOrder();
             }
         });
@@ -644,6 +649,7 @@ if (!$block->isEnabled()) return;
         ////////////////////////////////////////////////
         onElementReady(bolt_button_selector, function(element) {
             checkout_buttons = true;
+            console.log('bolt_button_selector processButtons');
             processButtons();
         });
         ////////////////////////////////////////////////
@@ -715,6 +721,9 @@ if (!$block->isEnabled()) return;
                 checkoutButtonApply(function(button) {
                     button.style.display = '';
                 });
+                location.hash
+                console.log('location.hash: ', location.hash);
+                console.log('hashchange processButtons');
                 processButtons();
             }
         });
