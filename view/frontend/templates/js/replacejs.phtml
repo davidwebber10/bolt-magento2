@@ -522,7 +522,8 @@ if (!$block->isEnabled()) return;
         /////////////////////////////////////////////////////
         var createRequest;
         var createOrder = function () {
-            if (createRequest) createRequest.abort();
+            // Avoid simultaneous requests. Do not send API request if there is an ongoing one.
+            if (createRequest) return;
             // define the params sent with the request variable
             var params = [];
 
@@ -904,6 +905,8 @@ if (!$block->isEnabled()) return;
         monitorDataChange(['fieldset.fieldset.rate'], prefetchShipping, false, false);
         ///////////////////////////////////////////////////////////
     });
+
+    <?php echo $block->getAdditionalJavascript(); ?>
 </script>
 
 <style>

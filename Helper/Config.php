@@ -176,6 +176,11 @@ class Config extends AbstractHelper
     const XML_PATH_GEOLOCATION_API_KEY = 'payment/boltpay/geolocation_api_key';
 
     /**
+     * Path for Additional Javascript
+     */
+    const XML_PATH_ADDITIONAL_JS = 'payment/boltpay/additional_js';
+
+    /**
      * Path for Product Restriction Methods
      */
     const XML_PATH_PRODUCT_RESTRICTION_METHODS = 'payment/boltpay/product_restriction_methods';
@@ -545,6 +550,19 @@ class Config extends AbstractHelper
     {
         return $this->getScopeConfig()->getValue(
             self::XML_PATH_PRODUCT_RESTRICTION_METHODS,
+            ScopeInterface::SCOPE_STORE
+        );
+    }
+
+    /**
+     * Get Additional Javascript from config
+     *
+     * @return  string
+     */
+    public function getAdditionalJS()
+    {
+        return $this->getScopeConfig()->getValue(
+            self::XML_PATH_ADDITIONAL_JS,
             ScopeInterface::SCOPE_STORE
         );
     }
