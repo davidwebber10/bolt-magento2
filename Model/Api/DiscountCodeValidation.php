@@ -223,7 +223,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
             }
 
             $this->logHelper->addInfoLog(__METHOD__);
-            $this->logHelper->addInfoLog('Coupon is empty: '. (empty($coupon) || $coupon->isObjectNew()) ? 'yes - Coupon' : 'no - Coupon');
+            $this->logHelper->addInfoLog('Coupon is empty: '. ((empty($coupon) || $coupon->isObjectNew()) ? 'yes - Coupon' : 'no - Coupon'));
             $this->logHelper->addInfoLog('GiftCArd is empty: '. ((empty($giftCard)) ? 'yes - Giftcard' : 'no - Giftcard'));
             $this->logHelper->addInfoLog((bool)((empty($coupon) || $coupon->isObjectNew()) && empty($giftCard)));
             // check if the coupon exists
@@ -312,10 +312,17 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
                 return $result;
             }
 
+//            $this->sendSuccessResponse($result, $immutableQuote);
+
+            $result['cart'] = $this->getCartTotals($immutableQuote);
+
+            $this->response->setBody(json_encode($result));
+            $this->response->sendResponse();
+
             $this->logHelper->addInfoLog(json_encode($result));
             $this->logHelper->addInfoLog('=== END ===');
 
-            return $this->sendSuccessResponse($result, $immutableQuote);
+            return $result;
 
         } catch (\Magento\Framework\Webapi\Exception $e) {
             $this->bugsnag->notifyException($e);
@@ -325,9 +332,13 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
                 $e->getHttpCode(),
                 @$immutableQuote
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
+            $this->logHelper->addInfoLog('=== EXCEPTION ===');
+            $this->logHelper->addInfoLog( $e->getMessage());
+
             $this->bugsnag->notifyException($e);
             $errMsg = 'Unprocessable Entity: ' . $e->getMessage();
+
             return $this->sendErrorResponse(
                 self::ERR_SERVICE,
                 $errMsg,
@@ -570,6 +581,9 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
         $this->response->setBody(json_encode($result));
         $this->response->sendResponse();
 
+        $this->logHelper->addInfoLog(json_encode($result));
+        $this->logHelper->addInfoLog('=== END ===');
+
         return $result;
     }
 
@@ -616,7 +630,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
      * Load the gift card data by code
      *
      * @param $code
-     * @return Magento\GiftCardAccount\Model\Giftcardaccount|null
+     * @return \Magento\GiftCardAccount\Model\Giftcardaccount|null
      */
     private function loadGiftCardData($code)
     {
@@ -625,12 +639,17 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $giftCardAccount = $objectManager->get('Magento\GiftCardAccount\Model\Giftcardaccount');
         if ($giftCardAccount) {
-            /** @var Magento\GiftCardAccount\Model\Giftcardaccount $giftCardAccount */
+            /** @var \Magento\GiftCardAccount\Model\Giftcardaccount $giftCardAccount */
             $giftCard = $giftCardAccount->loadByCode($code);
 
+            $this->logHelper->addInfoLog('# Code: ' . $code);
+            $this->logHelper->addInfoLog('# isValid: ' . ($giftCard->isValid() ? "yes" : 'no'));
             $result = ($giftCard->isValid()) ? $giftCard : null;
         }
-        $this->logHelper->addInfoLog('# loadGiftCardData Result is empty: '. (empty($result) ? "yes" : 'no'));
+        $this->logHelper->addInfoLog( '# loadGiftCardData Result is empty: '. (empty($result) ? "yes" : 'no'));
+        if (!empty($result)) {
+            $this->logHelper->addInfoLog($result->getCode());
+        }
 
         return $result;
     }
