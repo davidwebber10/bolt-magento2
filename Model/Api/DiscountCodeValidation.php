@@ -273,7 +273,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
                 $this->bugsnag->notifyException($e);
                 $this->sendErrorResponse(
                     self::ERR_INSUFFICIENT_INFORMATION,
-                    sprintf('The cart reference [%s] is not found.', $parentQuoteId),
+                    sprintf('The cart reference [%s] is not found. (parent quote)', $parentQuoteId),
                     404
                 );
                 return false;
@@ -287,7 +287,7 @@ class DiscountCodeValidation implements DiscountCodeValidationInterface
                 $this->bugsnag->notifyException($e);
                 $this->sendErrorResponse(
                     self::ERR_INSUFFICIENT_INFORMATION,
-                    sprintf('The cart reference [%s] is not found.', $immutableQuoteId),
+                    sprintf('The cart reference [%s] is not found.(immutable quote)', $immutableQuoteId),
                     404
                 );
 
