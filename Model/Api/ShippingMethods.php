@@ -605,6 +605,21 @@ class ShippingMethods implements ShippingMethodsInterface
                 continue;
             }
 
+            if (strpos($service, 'UPS') !== false) {
+                if (strpos($service, 'UPS Ground') !== false) {
+                    $service .= '(delivered by 8/25)';
+                } elseif (strpos($service, 'UPS Three-Day') !== false) {
+                    $service .= '(delivered by 8/23)';
+                } elseif (strpos($service, 'UPS Second Day Air') !== false) {
+                    $service .= '(delivered by 8/23)';
+                } elseif (strpos($service, 'UPS Next Day Air ') !== false) {
+                    $service .= '(delivered by 8/20-21)';
+                }
+            }
+
+            $this->logHelper->addInfoLog('--- DEBUG ---');
+            $this->logHelper->addInfoLog($service);
+
             $shippingMethods[] = $this->shippingOptionInterfaceFactory
                 ->create()
                 ->setService($service)
