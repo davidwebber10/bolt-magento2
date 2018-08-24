@@ -50,11 +50,6 @@ class JsTest extends \PHPUnit\Framework\TestCase
     protected $block;
 
     /**
-     * @var \Magento\Quote\Model\Quote
-     */
-    protected $quoteMock;
-
-    /**
      * @inheritdoc
      */
     protected function setUp()
@@ -62,12 +57,12 @@ class JsTest extends \PHPUnit\Framework\TestCase
         $this->helperContextMock = $this->createMock(\Magento\Framework\App\Helper\Context::class);
         $this->contextMock = $this->createMock(\Magento\Framework\View\Element\Template\Context::class);
         $this->checkoutSessionMock = $this->createMock(\Magento\Checkout\Model\Session::class);
-        $this->quoteMock = $this->createMock(\Magento\Quote\Model\Quote::class);
 
         $methods = [
             'isSandboxModeSet', 'isActive', 'getAnyPublishableKey',
             'getPublishableKeyPayment', 'getPublishableKeyCheckout', 'getPublishableKeyBackOffice',
-            'getReplaceSelectors', 'getGlobalCSS', 'getPrefetchShipping'
+            'getReplaceSelectors', 'getGlobalCSS', 'getPrefetchShipping', 'getQuoteIsVirtual',
+            'getTotalsChangeSelectors'
         ];
 
         $this->configHelper = $this->getMockBuilder(HelperConfig::class)
@@ -83,7 +78,7 @@ class JsTest extends \PHPUnit\Framework\TestCase
             ->getMock();
 
         $this->block = $this->getMockBuilder(BlockJs::class)
-            ->setMethods(['getUrl'])
+            ->setMethods(['configHelper', 'getUrl'])
             ->setConstructorArgs(
                 [
                     $this->contextMock,
@@ -208,6 +203,8 @@ class JsTest extends \PHPUnit\Framework\TestCase
         $this->assertJson($result, 'The Settings config do not have a proper JSON format.');
 
         $array = json_decode($result, true);
+        $this->assertCount(12, $array, 'The number of keys in the settings is not correct');
+
         $message = 'Cannot find in the Settings the key: ';
         $this->assertArrayHasKey('connect_url', $array, $message . 'connect_url');
         $this->assertArrayHasKey('publishable_key_payment', $array, $message . 'publishable_key_payment');
@@ -218,6 +215,8 @@ class JsTest extends \PHPUnit\Framework\TestCase
         $this->assertArrayHasKey('selectors', $array, $message . 'selectors');
         $this->assertArrayHasKey('shipping_prefetch_url', $array, $message . 'shipping_prefetch_url');
         $this->assertArrayHasKey('prefetch_shipping', $array, $message . 'prefetch_shipping');
+        $this->assertArrayHasKey('save_email_url', $array, $message . 'save_email_url');
+        $this->assertArrayHasKey('quote_is_virtual', $array, $message . 'quote_is_virtual');
         $this->assertArrayHasKey('totals_change_selectors', $array, $message . 'totals_change_selectors');
     }
 
@@ -247,40 +246,5 @@ class JsTest extends \PHPUnit\Framework\TestCase
         $this->configHelper->expects($this->any())
             ->method('isSandboxModeSet')
             ->will($this->returnValue($value));
-    }
-
-    /**
-     * Call protected/private method of a class.
-     *
-     * @param $object
-     * @param $methodName
-     * @param array $parameters
-     * @return mixed
-     */
-    public function invokeMethod(&$object, $methodName, array $parameters = [])
-    {
-        $reflection = new \ReflectionClass(get_class($object));
-        $method = $reflection->getMethod($methodName);
-        $method->setAccessible(true);
-
-        return $method->invokeArgs($object, $parameters);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function testGetQuoteIsVirtual()
-    {
-        $this->checkoutSessionMock
-            ->expects($this->any())
-            ->method('getQuote')
-            ->will($this->returnValue($this->quoteMock));
-
-        $this->quoteMock->expects($this->any())->method('isVirtual')->will($this->returnValue(true));
-
-        $value = $this->quoteMock->isVirtual();
-        $result = $this->invokeMethod($this->block, 'getQuoteIsVirtual');
-
-        $this->assertEquals($value, $result, 'getQuoteIsVirtual() method: not working properly');
     }
 }
