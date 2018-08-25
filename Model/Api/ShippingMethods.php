@@ -615,6 +615,10 @@ class ShippingMethods implements ShippingMethodsInterface
                 } elseif (strpos($service, 'UPS Next Day Air') !== false) {
                     $service .= ' (delivered by 8/20-21)';
                 }
+
+                if (strpos($service, 'United Parcel Service') !== false) {
+                    $service = str_replace('United Parcel Service - ', '', $service);
+                }
             }
 
             $shippingMethods[] = $this->shippingOptionInterfaceFactory
