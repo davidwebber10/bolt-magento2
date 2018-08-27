@@ -17,7 +17,7 @@
  */
 -->
 <!-- Declare bolt pay payment method on the checkout page -->
-<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="1column" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+<!--<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="1column" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceBlock name="checkout.root">
             <arguments>
@@ -32,7 +32,7 @@
                                             <item name="children" xsi:type="array">
                                                 <item name="payment" xsi:type="array">
                                                     <item name="children" xsi:type="array">
-                                                        <!-- Declare bolt pay payment method (the component that registrates in the list). START -->
+                                                        &lt;!&ndash; Declare bolt pay payment method (the component that registrates in the list). START &ndash;&gt;
                                                         <item name="renders" xsi:type="array">
                                                             <item name="children" xsi:type="array">
                                                                 <item name="boltpay-payments" xsi:type="array">
@@ -45,7 +45,7 @@
                                                                 </item>
                                                             </item>
                                                         </item>
-                                                         <!-- Declare bolt pay payment payment method (the component that registrates in the list). END -->
+                                                         &lt;!&ndash; Declare bolt pay payment payment method (the component that registrates in the list). END &ndash;&gt;
                                                     </item>
                                                 </item>
                                             </item>
@@ -59,4 +59,4 @@
             </arguments>
         </referenceBlock>
     </body>
-</page>
+</page>-->
