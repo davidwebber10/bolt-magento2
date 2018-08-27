@@ -677,9 +677,10 @@ if (!$block->isEnabled()) return;
                         } else {
                             element.parentNode.insertBefore(bolt_button, element);
                         }
-                        // if no position is specified remove the selector element
+                        // if no position is specified hide the selector element
                         if (!position) {
-                            element.parentNode.removeChild(element);
+                            // element.parentNode.removeChild(element);
+                            element.style.display = 'none';
                         }
                     });
                     /////////////////////////////////////////////////////
