@@ -25,8 +25,6 @@
             <module name="Magento_Checkout"/>
             <module name="Magento_Tax"/>
             <module name="Magento_GiftCardAccount"/>
-            <module name="Annexcloud_Saadmin"/>
-            <module name="Annexcloud_Visualcommerce"/>
         </sequence>
     </module>
 </config>
