@@ -945,19 +945,33 @@ class Cart extends AbstractHelper
         // trim values and filter out empty strings
         $productRestrictionMethods = array_filter(array_map('trim', $productRestrictionMethods));
 
-        if (!$productRestrictionMethods) return false;
+        // get configured Quote Item getters that can restrict Bolt checkout usage
+        $itemRestrictionMethods = explode(',', $this->configHelper->getItemRestrictionMethods());
+        // trim values and filter out empty strings
+        $itemRestrictionMethods = array_filter(array_map('trim', $itemRestrictionMethods));
+
+        if (!$productRestrictionMethods && !$itemRestrictionMethods) return false;
 
         /** @var Quote $quote */
         $quote = $quote ?: $this->checkoutSession->getQuote();
         foreach ($quote->getAllVisibleItems() as $item) {
-            // get item product
-            $product = $this->productFactory->create()->load($item->getProductId());
-            // call every, if any, method on product, if found return true, do restrict
-            foreach ($productRestrictionMethods as $method) {
-                if ($product->$method()) return true;
+
+            if ($itemRestrictionMethods) {
+                // call every method on item, if returns true, do restrict
+                foreach ($itemRestrictionMethods as $method) {
+                    if ($item->$method()) return true;
+                }
+            }
+            if ($productRestrictionMethods) {
+                // get item product
+                $product = $this->productFactory->create()->load($item->getProductId());
+                // call every method on product, if returns true, do restrict
+                foreach ($productRestrictionMethods as $method) {
+                    if ($product->$method()) return true;
+                }
             }
         }
-
+        // no restrictions
         return false;
     }
 }

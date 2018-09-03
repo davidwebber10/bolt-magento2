@@ -438,11 +438,6 @@ if (!$block->isEnabled()) return;
 
             check: function () {
 
-                if (createRequest || !cart.orderToken) {
-                    console.log("Retrieving order token from server... not ready to checkout yet.");
-                    return false;
-                }
-
                 /**
                  * On Bolt button click check if guest checkout is allowed.
                  * Display login popup to guest customers if it is not. The
@@ -520,7 +515,7 @@ if (!$block->isEnabled()) return;
         /////////////////////////////////////////////////////
         // Create Bolt order and configure BoltCheckout
         /////////////////////////////////////////////////////
-        var createRequest;
+        var createRequest = false;
         var createOrder = function () {
             // Avoid simultaneous requests. Do not send API request if there is an ongoing one.
             if (createRequest) return;
@@ -571,29 +566,39 @@ if (!$block->isEnabled()) return;
             }
             params = params.join('&');
             if (params === '') params = null;
-            // set cart and hints data in a response callback
-            var onSuccess = function(data){
-                cart = data.cart;
-                createRequest = null;
 
-                toggleCheckout(cart.orderToken);
+            if (window.BoltCheckout) BoltCheckout.configure(new Promise(function (resolve, reject) {
 
-                var prefill = isObject(data.hints.prefill) ? deepMergeObjects(hints.prefill, data.hints.prefill) : hints.prefill;
-                hints = deepMergeObjects(hints, data.hints);
-                hints.prefill = prefill;
+                createRequest = true;
 
-                hints.publishableKey = getCheckoutKey();
+                // send create order request
+                $.post(settings.create_order_url, params)
+                    .done(function (data) {
+                        // set cart and hints data
+                        cart = data.cart;
 
-                if (window.BoltCheckout) BoltCheckout.configure(cart, hints, callbacks);
+                        toggleCheckout(cart.orderToken);
 
-                // prefetch Shipping and Tax for multi-step checkout
-                if (cart.orderToken && getCheckoutType() === 'checkout') prefetchShipping();
-            };
-            var onError = function(error) {
-                createRequest = null;
-            };
-            // send create order request
-            createRequest = ajaxPost(settings.create_order_url, params, onSuccess, onError);
+                        var prefill = isObject(data.hints.prefill) ? deepMergeObjects(hints.prefill, data.hints.prefill) : hints.prefill;
+
+                        hints = deepMergeObjects(hints, data.hints);
+                        hints.prefill = prefill;
+                        hints.publishableKey = getCheckoutKey();
+
+                        resolve(cart);
+
+                        // prefetch Shipping and Tax for multi-step checkout
+                        if (cart.orderToken && getCheckoutType() === 'checkout') prefetchShipping();
+                    })
+                    .fail(function(jqXHR, textStatus, errorThrown) {
+                        reject(new Error(errorThrown || jqXHR.statusText || 'Network request failed'));
+                    })
+                    .always(function() {
+                        createRequest = false;
+                    })
+
+            }), hints, callbacks);
+
         };
         /////////////////////////////////////////////////////
 
@@ -662,48 +667,52 @@ if (!$block->isEnabled()) return;
         //////////////////////////////////////////////////////////
         // loop through selectors array and set up the replacement
         //////////////////////////////////////////////////////////
-        for (var i = 0, length = settings.selectors.length; i < length; i++) {
-            var selector = settings.selectors[i];
-            ! function(selector) {
-                var parts = selector.split('|');
-                // the CSS selector
-                var identifier = parts[0].trim();
-                // button placement regarding the selector element: prepend, append, toggle
-                var position =  parts[1];
-                /////////////////////////////////////////////////////
-                // replace the selectors with bolt button identifiers
-                // if / when selectors are in the DOM
-                /////////////////////////////////////////////////////
-                onElementReady(identifier, function(element) {
-                    if (getCheckoutKey() === '') return;
-                    var bolt_button = document.createElement('div');
-                    bolt_button.setAttribute('class', bolt_button_css_class);
-                    // place the button before or after selector element
-                    if (position) {
-                        var place = position.trim().toLowerCase();
-                        switch (place) {
-                            case 'append':
-                                element.parentNode.insertBefore(bolt_button, element.nextSibling);
-                                break;
-                            case 'prepend':
-                                element.parentNode.insertBefore(bolt_button, element);
-                                break;
-                            case 'toggle':
-                                bolt_button.classList.add('bolt-toggle-bolt');
-                                element.classList.add('bolt-toggle-magento');
-                                element.parentNode.insertBefore(bolt_button, element);
-                                break;
+        var setupReplacement = function() {
+            for (var i = 0, length = settings.selectors.length; i < length; i++) {
+                var selector = settings.selectors[i];
+                ! function(selector) {
+                    var parts = selector.split('|');
+                    // the CSS selector
+                    var identifier = parts[0].trim();
+                    // button placement regarding the selector element: prepend, append, toggle
+                    var position =  parts[1];
+                    /////////////////////////////////////////////////////
+                    // replace the selectors with bolt button identifiers
+                    // if / when selectors are in the DOM
+                    /////////////////////////////////////////////////////
+                    onElementReady(identifier, function(element) {
+                        if (getCheckoutKey() === '') return;
+                        var bolt_button = document.createElement('div');
+                        bolt_button.setAttribute('class', bolt_button_css_class);
+                        // place the button before or after selector element
+                        if (position) {
+                            var place = position.trim().toLowerCase();
+                            switch (place) {
+                                case 'append':
+                                    element.parentNode.insertBefore(bolt_button, element.nextSibling);
+                                    break;
+                                case 'prepend':
+                                    element.parentNode.insertBefore(bolt_button, element);
+                                    break;
+                                case 'toggle':
+                                    bolt_button.classList.add('bolt-toggle-bolt');
+                                    element.classList.add('bolt-toggle-magento');
+                                    element.parentNode.insertBefore(bolt_button, element);
+                                    break;
+                            }
+                        } else {
+                            // if no position is specified remove the selector element
+                            element.parentNode.insertBefore(bolt_button, element);
+                            // element.parentNode.removeChild(element);
+                            $(element).hide();
                         }
-                    } else {
-                        // if no position is specified remove the selector element
-                        element.parentNode.insertBefore(bolt_button, element);
-                        element.parentNode.removeChild(element);
-                    }
-                    toggleCheckout(cart.orderToken);
-                });
-                /////////////////////////////////////////////////////
-            }(selector);
-        }
+                        toggleCheckout(cart.orderToken);
+                    });
+                    /////////////////////////////////////////////////////
+                }(selector);
+            }
+        };
+        setupReplacement();
         //////////////////////////////////////////////////////////
 
         ////////////////////////////////////////////////////////
@@ -781,13 +790,7 @@ if (!$block->isEnabled()) return;
         // totals updated or items added via ajax call.
         // TODO: add this option to plugin configuration admin page
         ///////////////////////////////////////////////////////////////
-        var totals_change_selectors = [
-            'tr.grand.totals td.amount span.price',
-            'tr.shipping.totals td.amount span.price',
-            '.minicart-wrapper .counter.qty span.counter-number'
-        ];
-        ///////////////////////////////////
-        monitorDataChange(totals_change_selectors, createOrder, true, true);
+        monitorDataChange(settings.totals_change_selectors, createOrder, true, true);
         ///////////////////////////////////////////////////////////////
 
         ///////////////////////////////////////////////////////////
@@ -908,7 +911,3 @@ if (!$block->isEnabled()) return;
 
     <?php echo $block->getAdditionalJavascript(); ?>
 </script>
-
-<style>
-    <?php echo $block->getGlobalCSS(); ?>
-</style>

@@ -71,6 +71,11 @@ class Config extends AbstractHelper
     const XML_PATH_REPLACE_SELECTORS = 'payment/boltpay/replace_selectors';
 
     /**
+     * Path for Totals Change Selectors
+     */
+    const XML_PATH_TOTALS_CHANGE_SELECTORS = 'payment/boltpay/totals_change_selectors';
+
+    /**
      * Path for Global CSS
      */
     const XML_PATH_GLOBAL_CSS = 'payment/boltpay/global_css';
@@ -184,6 +189,11 @@ class Config extends AbstractHelper
      * Path for Product Restriction Methods
      */
     const XML_PATH_PRODUCT_RESTRICTION_METHODS = 'payment/boltpay/product_restriction_methods';
+
+    /**
+     * Path for Item Restriction Methods
+     */
+    const XML_PATH_ITEM_RESTRICTION_METHODS = 'payment/boltpay/item_restriction_methods';
 
     /**
      * @var ResourceInterface
@@ -374,6 +384,19 @@ class Config extends AbstractHelper
     }
 
     /**
+     * Get Totals Change Selectors from config
+     *
+     * @return  string
+     */
+    public function getTotalsChangeSelectors()
+    {
+        return $this->getScopeConfig()->getValue(
+            self::XML_PATH_TOTALS_CHANGE_SELECTORS,
+            ScopeInterface::SCOPE_STORE
+        );
+    }
+
+    /**
      * Get Replace Selectors from config
      *
      * @return  string
@@ -550,6 +573,19 @@ class Config extends AbstractHelper
     {
         return $this->getScopeConfig()->getValue(
             self::XML_PATH_PRODUCT_RESTRICTION_METHODS,
+            ScopeInterface::SCOPE_STORE
+        );
+    }
+
+    /**
+     * Get Item Restriction Methods
+     *
+     * @return  string
+     */
+    public function getItemRestrictionMethods()
+    {
+        return $this->getScopeConfig()->getValue(
+            self::XML_PATH_ITEM_RESTRICTION_METHODS,
             ScopeInterface::SCOPE_STORE
         );
     }

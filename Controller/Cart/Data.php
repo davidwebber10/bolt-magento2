@@ -118,18 +118,18 @@ class Data extends Action
 
                 $hints = $this->cartHelper->getHints($place_order_payload, $cartReference);
             }
-
+        } catch (Exception $e) {
+            $this->bugsnag->notifyException($e);
+//            throw $e;
+            $cart  = [];
+            $hints = [];
+        } finally {
             $result = $this->resultJsonFactory->create();
-
             return $result->setData([
                 'status' => 'success',
                 'cart'   => $cart,
                 'hints'  => $hints,
             ]);
-
-        } catch (Exception $e) {
-            $this->bugsnag->notifyException($e);
-            throw $e;
         }
     }
 }

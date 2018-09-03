@@ -1,3 +1,4 @@
+<?php
 /**
  * Bolt magento2 plugin
  *
@@ -13,15 +14,8 @@
  * @copyright  Copyright (c) 2018 Bolt Financial, Inc (https://www.bolt.com)
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-
-/**
- * Replaces page-cache javascript.
- */
-var config = {
-    map: {
-        '*': {
-            pageCache: 'Bolt_Boltpay/js/page-cache',
-            'Magento_PageCache/js/page-cache': 'Bolt_Boltpay/js/page-cache'
-        }
-    }
-};
+if (!$block->isEnabled()) return;
+?>
+<style>
+    <?php echo $block->getGlobalCSS(); ?>
+</style>
