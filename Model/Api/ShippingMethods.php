@@ -612,6 +612,11 @@ class ShippingMethods implements ShippingMethodsInterface
                 ->setTaxAmount($taxAmount);
         }
 
+        // sort methods by price
+        usort ( $shippingMethods , function ($a, $b){
+            return $a->getCost() - $b->getCost();
+        });
+
         $shippingAddress->setShippingMethod(null)->save();
 
         if ($errors) {

@@ -698,6 +698,8 @@ if (!$block->isEnabled()) return;
                                     bolt_button.classList.add('bolt-toggle-bolt');
                                     element.classList.add('bolt-toggle-magento');
                                     element.parentNode.insertBefore(bolt_button, element);
+                                    $(bolt_button).hide();
+                                    $(element).hide();
                                     break;
                             }
                         } else {
@@ -706,7 +708,6 @@ if (!$block->isEnabled()) return;
                             // element.parentNode.removeChild(element);
                             $(element).hide();
                         }
-                        toggleCheckout(cart.orderToken);
                     });
                     /////////////////////////////////////////////////////
                 }(selector);
