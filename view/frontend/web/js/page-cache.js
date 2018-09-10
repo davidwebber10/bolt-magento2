@@ -15,12 +15,16 @@
  */
 
 /**
- * Replacement for the original file. The union of the files from 2.0.0 ~ 2.2.3 Magento 2 versions.
- * Fixes <iframe> CORS errors in versions 2.0.0-2.1.9.
- * TODO: Check the file 'Magento_PageCache/js/page-cache.js' for changes in any new Magento versions and merge them here
- * Copyright © Magento, Inc. All rights reserved.
+ * Magento 2.1.9 page cache fix
+ */
+
+/**
+ * Handles additional ajax request for rendering user private content
+ *
+ * Copyright © 2013-2017 Magento, Inc. All rights reserved.
  * See COPYING.txt for license details.
  */
+
 define([
     'jquery',
     'domReady',
@@ -28,26 +32,6 @@ define([
     'mage/cookies'
 ], function ($, domReady) {
     'use strict';
-
-    /**
-     * Helper. Generate random string
-     * TODO: Merge with mage/utils
-     * @param {String} chars - list of symbols
-     * @param {Number} length - length for need string
-     * @returns {String}
-     */
-    function generateRandomString(chars, length)
-    {
-        var result = '';
-
-        length = length > 0 ? length : 1;
-
-        while (length--) {
-            result += chars[Math.round(Math.random() * (chars.length - 1))];
-        }
-
-        return result;
-    }
 
     /**
      * Nodes tree to flat list converter
@@ -59,8 +43,7 @@ define([
         /**
          * @param {jQuery} element - Comment holder
          */
-        (function lookup(element)
-        {
+        (function lookup(element) {
             var iframeHostName;
 
             // prevent cross origin iframe content reading
@@ -94,28 +77,6 @@ define([
     };
 
     /**
-     * MsgBox Widget checks if message box is displayed and sets cookie
-     */
-    $.widget('mage.msgBox', {
-        options: {
-            msgBoxCookieName: 'message_box_display',
-            msgBoxSelector: '.main div.messages'
-        },
-
-        /**
-         * Creates widget 'mage.msgBox'
-         * @private
-         */
-        _create: function () {
-            if ($.mage.cookies.get(this.options.msgBoxCookieName)) {
-                $.mage.cookies.clear(this.options.msgBoxCookieName);
-            } else {
-                $(this.options.msgBoxSelector).hide();
-            }
-        }
-    });
-
-    /**
      * FormKey Widget - this widget is generating from key, saves it to cookie and
      */
     $.widget('mage.formKey', {
@@ -142,7 +103,6 @@ define([
 
     /**
      * PageCache Widget
-     * Handles additional ajax request for rendering user private content.
      */
     $.widget('mage.pageCache', {
         options: {
@@ -202,10 +162,10 @@ define([
                 } else {
                     matches = this.options.patternPlaceholderClose.exec(el.nodeValue);
 
-                    if (matches) { //eslint-disable-line max-depth
+                    if (matches) {
                         name = matches[1];
 
-                        if (tmp[name]) { //eslint-disable-line max-depth
+                        if (tmp[name]) {
                             tmp[name].closeElement = el;
                             placeholders.push(tmp[name]);
                             delete tmp[name];
@@ -238,18 +198,18 @@ define([
             for (yy = 0, len = contents.length; yy < len; yy++) {
                 element = contents[yy];
 
-                if (element == placeholder.openElement) { //eslint-disable-line eqeqeq
+                if (element == placeholder.openElement) {
                     startReplacing = true;
                 }
 
                 if (startReplacing) {
                     $(element).remove();
-                } else if (element.nodeType != 8) { //eslint-disable-line eqeqeq
+                } else if (element.nodeType != 8) {
                     //due to comment tag doesn't have siblings we try to find it manually
                     prevSibling = element;
                 }
 
-                if (element == placeholder.closeElement) { //eslint-disable-line eqeqeq
+                if (element == placeholder.closeElement) {
                     break;
                 }
             }
@@ -314,14 +274,29 @@ define([
 
     domReady(function () {
         $('body')
-            .msgBox()
             .formKey();
     });
 
     return {
         'pageCache': $.mage.pageCache,
-        'formKey': $.mage.formKey,
-        'msgBox': $.mage.msgBox
+        'formKey': $.mage.formKey
     };
-});
 
+    /**
+     * Helper. Generate random string
+     * TODO: Merge with mage/utils
+     * @param {String} chars - list of symbols
+     * @param {Number} length - length for need string
+     * @returns {String}
+     */
+    function generateRandomString(chars, length) {
+        var result = '';
+        length = length > 0 ? length : 1;
+
+        while (length--) {
+            result += chars[Math.round(Math.random() * (chars.length - 1))];
+        }
+
+        return result;
+    }
+});
